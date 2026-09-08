@@ -1,12 +1,66 @@
-﻿-- Iron Soul Dungeon - Full Build (Checked & Fixed)
--- Delta + Rayfield
+-- Iron Soul Dungeon - Kavo UI (Alternative)
+-- Delta compatible
 
-local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/Kavo.lua"))()
 
-local Player = game.Players.LocalPlayer
-local Char = Player.Character or Player.CharacterAdded:Wait()
-local Root = Char:WaitForChild("HumanoidRootPart")
-local Hum = Char:WaitForChild("Humanoid")
+local Window = Library.CreateLib("Iron Soul Dungeon", "DarkTheme")
+
+local CombatTab = Window:NewTab("Combat")
+local CombatSection = CombatTab:NewSection("Auto")
+CombatSection:NewToggle("Auto Combat", "Toggle", function(v)
+    _G.autoCombat = v
+end)
+CombatSection:NewToggle("Auto Loot", "Toggle", function(v)
+    _G.autoLoot = v
+end)
+CombatSection:NewToggle("Auto Return", "Toggle", function(v)
+    _G.autoReturn = v
+end)
+CombatSection:NewSlider("Attack Range", "studs", 5, 50, 15, function(v)
+    _G.attackRange = v
+end)
+CombatSection:NewSlider("Loot Range", "studs", 10, 100, 30, function(v)
+    _G.lootRange = v
+end)
+
+local MovementTab = Window:NewTab("Movement")
+local MovementSection = MovementTab:NewSection("Stats")
+MovementSection:NewSlider("Walk Speed", "speed", 16, 120, 16, function(v)
+    _G.walkSpeed = v
+end)
+MovementSection:NewSlider("Jump Power", "jump", 50, 200, 50, function(v)
+    _G.jumpPower = v
+end)
+
+local UtilityTab = Window:NewTab("Utility")
+local UtilitySection = UtilityTab:NewSection("Tools")
+UtilitySection:NewButton("Teleport to Lobby", "Go back", function()
+    game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, game.Players.LocalPlayer)
+end)
+UtilitySection:NewButton("Kill Character", "Reset", function()
+    game.Players.LocalPlayer.Character.Humanoid.Health = 0
+end)
+
+local CombatOverhaulTab = Window:NewTab("Combat Overhaul")
+local COSection = CombatOverhaulTab:NewSection("Combat Overhaul")
+COSection:NewToggle("Ability Rotation", "Toggle", function(v)
+    _G.abilityRotation = v
+end)
+COSection:NewToggle("Kill Aura (Subtle)", "Toggle", function(v)
+    _G.killAura = v
+end)
+COSection:NewSlider("Kill Aura Extra Range", "studs", 0.5, 8, 2.5, function(v)
+    _G.killAuraRange = v
+end)
+COSection:NewToggle("Auto Dodge", "Toggle", function(v)
+    _G.autoDodge = v
+end)
+COSection:NewToggle("Boss Priority", "Toggle", function(v)
+    _G.bossPriority = v
+end)
+COSection:NewSlider("Heal Threshold %", "percent", 10, 80, 30, function(v)
+    _G.healThreshold = v
+end)
 
 -- ===== GLOBALS =====
 _G.autoCombat = false
@@ -22,15 +76,16 @@ _G.killAura = false
 _G.killAuraRange = 2.5
 _G.healThreshold = 30
 _G.bossPriority = true
-_G.aoeRadius = 12
-_G.espEnabled = false
-_G.espLoot = false
-_G.antiIdle = false
 _G.abilityCooldowns = {}
 _G.lastAttackTime = 0
 _G.attackCooldown = 0.35
 
--- ===== HELPERS (defined FIRST so ESP can use them) =====
+local Player = game.Players.LocalPlayer
+local Char = Player.Character or Player.CharacterAdded:Wait()
+local Root = Char:WaitForChild("HumanoidRootPart")
+local Hum = Char:WaitForChild("Humanoid")
+
+-- ===== HELPERS =====
 local function getEnemies()
     local enemies = {}
     local workspace = game:GetService("Workspace")
@@ -130,286 +185,6 @@ local function getTargets()
     end
     return targets
 end
-
--- ===== RAYFIELD UI =====
-local Window = Rayfield:CreateWindow({
-    Name = "Iron Soul Dungeon",
-    LoadingTitle = "Loading...",
-    LoadingSubtitle = "by VANTA",
-    Theme = "Default"
-})
-
-local CombatTab = Window:CreateTab("Combat")
-local MovementTab = Window:CreateTab("Movement")
-local UtilityTab = Window:CreateTab("Utility")
-local CombatOverhaulTab = Window:CreateTab("Combat Overhaul")
-
--- ===== COMBAT TAB =====
-local CombatSection = CombatTab:CreateSection("Auto")
-CombatSection:CreateToggle({
-    Name = "Auto Combat",
-    CurrentValue = false,
-    Flag = "AutoCombat",
-    Callback = function(v) _G.autoCombat = v end
-})
-CombatSection:CreateToggle({
-    Name = "Auto Loot",
-    CurrentValue = false,
-    Flag = "AutoLoot",
-    Callback = function(v) _G.autoLoot = v end
-})
-CombatSection:CreateToggle({
-    Name = "Auto Return to Dungeon",
-    CurrentValue = false,
-    Flag = "AutoReturn",
-    Callback = function(v) _G.autoReturn = v end
-})
-CombatSection:CreateSlider({
-    Name = "Attack Range",
-    Range = {5, 50},
-    Increment = 1,
-    Suffix = "studs",
-    CurrentValue = 15,
-    Flag = "AttackRange",
-    Callback = function(v) _G.attackRange = v end
-})
-CombatSection:CreateSlider({
-    Name = "Loot Range",
-    Range = {10, 100},
-    Increment = 1,
-    Suffix = "studs",
-    CurrentValue = 30,
-    Flag = "LootRange",
-    Callback = function(v) _G.lootRange = v end
-})
-
--- ===== MOVEMENT TAB =====
-local MovementSection = MovementTab:CreateSection("Stats")
-MovementSection:CreateSlider({
-    Name = "Walk Speed",
-    Range = {16, 120},
-    Increment = 1,
-    Suffix = "speed",
-    CurrentValue = 16,
-    Flag = "WalkSpeed",
-    Callback = function(v)
-        _G.walkSpeed = v
-        if Char and Char:FindFirstChild("Humanoid") then
-            Char.Humanoid.WalkSpeed = v
-        end
-    end
-})
-MovementSection:CreateSlider({
-    Name = "Jump Power",
-    Range = {50, 200},
-    Increment = 1,
-    Suffix = "jump",
-    CurrentValue = 50,
-    Flag = "JumpPower",
-    Callback = function(v)
-        _G.jumpPower = v
-        if Char and Char:FindFirstChild("Humanoid") then
-            Char.Humanoid.JumpPower = v
-        end
-    end
-})
-
--- ===== UTILITY TAB =====
-local UtilitySection = UtilityTab:CreateSection("Tools")
-UtilitySection:CreateButton({
-    Name = "Teleport to Lobby",
-    Callback = function()
-        game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, Player)
-    end
-})
-UtilitySection:CreateButton({
-    Name = "Kill Character",
-    Callback = function()
-        if Char and Char:FindFirstChild("Humanoid") then
-            Char.Humanoid.Health = 0
-        end
-    end
-})
-UtilitySection:CreateButton({
-    Name = "Reset GUI",
-    Callback = function()
-        Rayfield:Destroy()
-        _G.autoCombat = false
-        _G.autoLoot = false
-        _G.autoReturn = false
-        _G.abilityRotation = false
-        _G.killAura = false
-        _G.espEnabled = false
-        _G.espLoot = false
-        _G.antiIdle = false
-    end
-})
-
--- ===== TELEPORTS =====
-local TeleportSection = UtilityTab:CreateSection("Teleports")
-TeleportSection:CreateButton({
-    Name = "Teleport to Nearest Chest",
-    Callback = function()
-        pcall(function()
-            local chests = game:GetService("Workspace"):FindFirstChild("Chests")
-            if not chests then return end
-            local closest = nil
-            local dist = math.huge
-            for _, v in pairs(chests:GetChildren()) do
-                if v:FindFirstChild("Handle") then
-                    local mag = (v.Handle.Position - Root.Position).Magnitude
-                    if mag < dist then
-                        closest = v
-                        dist = mag
-                    end
-                end
-            end
-            if closest and closest:FindFirstChild("Handle") then
-                Root.CFrame = closest.Handle.CFrame
-            end
-        end)
-    end
-})
-
--- ===== FORGE =====
-local ForgeSection = UtilityTab:CreateSection("Forge")
-ForgeSection:CreateButton({
-    Name = "Auto-Forge (Craft All)",
-    Callback = function()
-        pcall(function()
-            local forge = game:GetService("Workspace"):FindFirstChild("Forge")
-            if not forge then return end
-            Root.CFrame = forge.CFrame
-            task.wait(0.5)
-            local gui = Player.PlayerGui:FindFirstChild("ForgeUI")
-            if gui then
-                local craftBtn = gui:FindFirstChild("CraftAllButton")
-                if craftBtn then
-                    craftBtn:Click()
-                end
-            end
-        end)
-    end
-})
-
--- ===== ESP =====
-local ESPSection = UtilityTab:CreateSection("ESP")
-ESPSection:CreateToggle({
-    Name = "ESP (Enemies)",
-    CurrentValue = false,
-    Flag = "ESP",
-    Callback = function(v)
-        _G.espEnabled = v
-        if v then
-            for _, enemy in pairs(getEnemies()) do
-                local highlight = Instance.new("Highlight")
-                highlight.Parent = enemy
-                highlight.FillColor = Color3.new(1, 0, 0)
-                highlight.FillTransparency = 0.4
-                enemy:SetAttribute("Highlight", highlight)
-            end
-        else
-            for _, enemy in pairs(getEnemies()) do
-                local h = enemy:GetAttribute("Highlight")
-                if h then h:Destroy() end
-            end
-        end
-    end
-})
-ESPSection:CreateToggle({
-    Name = "ESP (Loot)",
-    CurrentValue = false,
-    Flag = "ESPLoot",
-    Callback = function(v)
-        _G.espLoot = v
-        if v then
-            for _, item in pairs(getLoot()) do
-                if item:FindFirstChild("Handle") then
-                    local highlight = Instance.new("Highlight")
-                    highlight.Parent = item
-                    highlight.FillColor = Color3.new(0, 1, 0)
-                    highlight.FillTransparency = 0.3
-                    item:SetAttribute("LootHighlight", highlight)
-                end
-            end
-        else
-            for _, item in pairs(getLoot()) do
-                local h = item:GetAttribute("LootHighlight")
-                if h then h:Destroy() end
-            end
-        end
-    end
-})
-
--- ===== ANTI-IDLE =====
-local AntiIdleSection = UtilityTab:CreateSection("Anti-Idle")
-AntiIdleSection:CreateToggle({
-    Name = "Anti-Idle (Prevent Kick)",
-    CurrentValue = false,
-    Flag = "AntiIdle",
-    Callback = function(v) _G.antiIdle = v end
-})
-
--- ===== COMBAT OVERHAUL TAB =====
-local COSection = CombatOverhaulTab:CreateSection("Combat Overhaul")
-
-COSection:CreateToggle({
-    Name = "Ability Rotation",
-    CurrentValue = false,
-    Flag = "AbilityRotation",
-    Callback = function(v) _G.abilityRotation = v end
-})
-
-COSection:CreateToggle({
-    Name = "Kill Aura (Subtle)",
-    CurrentValue = false,
-    Flag = "KillAura",
-    Callback = function(v) _G.killAura = v end
-})
-
-COSection:CreateSlider({
-    Name = "Kill Aura Extra Range",
-    Range = {0.5, 8},
-    Increment = 0.5,
-    Suffix = "studs",
-    CurrentValue = 2.5,
-    Flag = "KillAuraRange",
-    Callback = function(v) _G.killAuraRange = v end
-})
-
-COSection:CreateToggle({
-    Name = "Auto Dodge",
-    CurrentValue = true,
-    Flag = "AutoDodge",
-    Callback = function(v) _G.autoDodge = v end
-})
-
-COSection:CreateToggle({
-    Name = "Boss Priority",
-    CurrentValue = true,
-    Flag = "BossPriority",
-    Callback = function(v) _G.bossPriority = v end
-})
-
-COSection:CreateSlider({
-    Name = "Heal Threshold %",
-    Range = {10, 80},
-    Increment = 5,
-    Suffix = "%",
-    CurrentValue = 30,
-    Flag = "HealThreshold",
-    Callback = function(v) _G.healThreshold = v end
-})
-
-COSection:CreateSlider({
-    Name = "AoE Radius",
-    Range = {5, 25},
-    Increment = 1,
-    Suffix = "studs",
-    CurrentValue = 12,
-    Flag = "AoERadius",
-    Callback = function(v) _G.aoeRadius = v end
-})
 
 -- ===== DODGE =====
 local function dodge()
@@ -570,52 +345,6 @@ local function mainLoop()
     end
 end
 
--- ===== ANTI-IDLE LOOP =====
-task.spawn(function()
-    while true do
-        task.wait(60)
-        if _G.antiIdle then
-            pcall(function()
-                local v = game:GetService("VirtualUser")
-                v:CaptureController()
-                v:ClickButton2(Vector2.new())
-            end)
-        end
-    end
-end)
-
--- ===== ESP UPDATE LOOP =====
-task.spawn(function()
-    while true do
-        task.wait(2)
-        pcall(function()
-            if _G.espEnabled then
-                for _, enemy in pairs(getEnemies()) do
-                    if not enemy:GetAttribute("Highlight") then
-                        local h = Instance.new("Highlight")
-                        h.Parent = enemy
-                        h.FillColor = Color3.new(1, 0, 0)
-                        h.FillTransparency = 0.4
-                        enemy:SetAttribute("Highlight", h)
-                    end
-                end
-            end
-            if _G.espLoot then
-                for _, item in pairs(getLoot()) do
-                    if item:FindFirstChild("Handle") and not item:GetAttribute("LootHighlight") then
-                        local h = Instance.new("Highlight")
-                        h.Parent = item
-                        h.FillColor = Color3.new(0, 1, 0)
-                        h.FillTransparency = 0.3
-                        item:SetAttribute("LootHighlight", h)
-                    end
-                end
-            end
-        end)
-    end
-end)
-
--- ===== RESPAWN =====
 Player.CharacterAdded:Connect(function()
     task.wait(1)
     Char = Player.Character
@@ -623,5 +352,4 @@ Player.CharacterAdded:Connect(function()
     Hum = Char:FindFirstChild("Humanoid")
 end)
 
--- ===== START =====
 task.spawn(mainLoop)
