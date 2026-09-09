@@ -1,284 +1,259 @@
--- Iron Soul: Dungeon | GUI-FIRST | 100% Working
--- No external libraries — GUI builds BEFORE anything else
+-- Iron Soul Dungeon - Rayfield UI
+-- Delta Executor
 
--- ============================================================
--- STEP 1: BUILD THE GUI IMMEDIATELY
--- ============================================================
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
-local player = game.Players.LocalPlayer
-local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = player.PlayerGui
-screenGui.Name = "IronSoulGUI"
+local Window = Rayfield:CreateWindow({
+    Name = "Iron Soul Dungeon",
+    LoadingTitle = "Loading...",
+    LoadingSubtitle = "by VANTA",
+    Theme = "Dark",
+})
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 350, 0, 500)
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -250)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-mainFrame.BackgroundTransparency = 0.1
-mainFrame.BorderSizePixel = 0
-mainFrame.ClipsDescendants = true
-mainFrame.Parent = screenGui
+-- ===== TABS =====
+local AuraTab = Window:CreateTab("Aura")
+local CombatTab = Window:CreateTab("Combat")
+local ForgeTab = Window:CreateTab("Forge")
+local DungeonTab = Window:CreateTab("Dungeon")
+local ESPTab = Window:CreateTab("ESP")
 
--- Title
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-title.BackgroundTransparency = 0
-title.BorderSizePixel = 0
-title.Text = "Iron Soul Dungeon"
-title.TextColor3 = Color3.fromRGB(255, 200, 100)
-title.TextSize = 18
-title.Font = Enum.Font.GothamBold
-title.Parent = mainFrame
-
--- Close button
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 25, 0, 25)
-closeBtn.Position = UDim2.new(1, -30, 0, 3)
-closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-closeBtn.BorderSizePixel = 0
-closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeBtn.TextSize = 14
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.Parent = mainFrame
-closeBtn.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
-end)
-
--- Tab buttons
-local tabContainer = Instance.new("Frame")
-tabContainer.Size = UDim2.new(1, 0, 0, 30)
-tabContainer.Position = UDim2.new(0, 0, 0, 30)
-tabContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-tabContainer.BackgroundTransparency = 0
-tabContainer.BorderSizePixel = 0
-tabContainer.Parent = mainFrame
-
-local tabs = {"Aura", "Combat", "Forge", "Dungeon", "ESP"}
-local tabButtons = {}
-local contentFrames = {}
-
-for i, name in ipairs(tabs) do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1 / #tabs, -2, 1, -2)
-    btn.Position = UDim2.new((i - 1) / #tabs, 1, 0, 1)
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    btn.BorderSizePixel = 0
-    btn.Text = name
-    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    btn.TextSize = 12
-    btn.Font = Enum.Font.GothamBold
-    btn.Parent = tabContainer
-    tabButtons[name] = btn
-
-    local content = Instance.new("ScrollingFrame")
-    content.Size = UDim2.new(1, -10, 1, -10)
-    content.Position = UDim2.new(0, 5, 0, 65)
-    content.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    content.BackgroundTransparency = 1
-    content.BorderSizePixel = 0
-    content.Visible = (i == 1)
-    content.CanvasSize = UDim2.new(0, 0, 0, 0)
-    content.ScrollBarThickness = 4
-    content.Parent = mainFrame
-    contentFrames[name] = content
-
-    btn.MouseButton1Click:Connect(function()
-        for _, cf in pairs(contentFrames) do cf.Visible = false end
-        content.Visible = true
-        for _, b in pairs(tabButtons) do
-            b.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-        end
-        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    end)
-end
-
--- ============================================================
--- STEP 2: UI HELPER FUNCTIONS (defined before use)
--- ============================================================
-
-local function AddToggle(parent, label, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -10, 0, 30)
-    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    frame.BorderSizePixel = 0
-    frame.Parent = parent
-
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0.7, 0, 1, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = label
-    lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
-    lbl.TextSize = 13
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Font = Enum.Font.Gotham
-    lbl.Parent = frame
-
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 60, 0, 22)
-    btn.Position = UDim2.new(0.75, 0, 0.5, -11)
-    btn.BackgroundColor3 = Color3.fromRGB(80, 80, 85)
-    btn.BorderSizePixel = 0
-    btn.Text = "OFF"
-    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    btn.TextSize = 12
-    btn.Font = Enum.Font.GothamBold
-    btn.Parent = frame
-
-    local state = false
-    btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.Text = state and "ON" or "OFF"
-        btn.BackgroundColor3 = state and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(80, 80, 85)
-        callback(state)
-    end)
-
-    parent.CanvasSize = UDim2.new(0, 0, 0, parent.CanvasSize.Y.Offset + 35)
-    return frame
-end
-
-local function AddSlider(parent, label, min, max, default, callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -10, 0, 45)
-    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-    frame.BorderSizePixel = 0
-    frame.Parent = parent
-
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0.5, 0, 0.5, 0)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = label .. ": " .. tostring(default)
-    lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
-    lbl.TextSize = 12
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Font = Enum.Font.Gotham
-    lbl.Parent = frame
-
-    local slider = Instance.new("Frame")
-    slider.Size = UDim2.new(0.85, 0, 0, 6)
-    slider.Position = UDim2.new(0.05, 0, 0.75, 0)
-    slider.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
-    slider.BorderSizePixel = 0
-    slider.Parent = frame
-
-    local fill = Instance.new("Frame")
-    fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-    fill.BackgroundColor3 = Color3.fromRGB(200, 150, 50)
-    fill.BorderSizePixel = 0
-    fill.Parent = slider
-
-    local value = default
-    local dragging = false
-
-    local function update(pos)
-        local rel = math.clamp((pos.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
-        value = math.floor(min + (max - min) * rel + 0.5)
-        fill.Size = UDim2.new(rel, 0, 1, 0)
-        lbl.Text = label .. ": " .. tostring(value)
-        callback(value)
+-- ===== AURA TAB =====
+local AuraSection = AuraTab:CreateSection("Long Range Kill Aura")
+AuraSection:CreateToggle({
+    Name = "Enable Kill Aura",
+    CurrentValue = false,
+    Flag = "KillAura",
+    Callback = function(v)
+        _G.KillAura = v
+        print("Kill Aura:", v)
     end
+})
 
-    slider.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            update(input.Position)
-        end
-    end)
-    slider.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            update(input.Position)
-        end
-    end)
-    slider.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
+AuraSection:CreateSlider({
+    Name = "Aura Range",
+    Range = {50, 500},
+    Increment = 10,
+    Suffix = "studs",
+    CurrentValue = 200,
+    Flag = "AuraRange",
+    Callback = function(v)
+        _G.AuraRange = v
+        print("Aura Range:", v)
+    end
+})
 
-    parent.CanvasSize = UDim2.new(0, 0, 0, parent.CanvasSize.Y.Offset + 50)
-    return frame
-end
+AuraSection:CreateSlider({
+    Name = "Aura Speed (ms)",
+    Range = {10, 200},
+    Increment = 5,
+    Suffix = "ms",
+    CurrentValue = 50,
+    Flag = "AuraSpeed",
+    Callback = function(v)
+        _G.AuraInterval = v / 1000
+        print("Aura Speed:", v)
+    end
+})
 
-local function AddButton(parent, label, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0, 30)
-    btn.Position = UDim2.new(0.05, 0, 0, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
-    btn.BorderSizePixel = 0
-    btn.Text = label
-    btn.TextColor3 = Color3.fromRGB(220, 220, 220)
-    btn.TextSize = 13
-    btn.Font = Enum.Font.GothamBold
-    btn.Parent = parent
-    btn.MouseButton1Click:Connect(callback)
+AuraSection:CreateToggle({
+    Name = "Boss Priority",
+    CurrentValue = false,
+    Flag = "BossPriority",
+    Callback = function(v)
+        _G.BossPriority = v
+        print("Boss Priority:", v)
+    end
+})
 
-    parent.CanvasSize = UDim2.new(0, 0, 0, parent.CanvasSize.Y.Offset + 35)
-    return btn
-end
+-- ===== COMBAT TAB =====
+local CombatSection = CombatTab:CreateSection("Auto Combat")
+CombatSection:CreateToggle({
+    Name = "Auto Combat",
+    CurrentValue = false,
+    Flag = "AutoCombat",
+    Callback = function(v) _G.AutoCombat = v end
+})
 
--- ============================================================
--- STEP 3: POPULATE GUI TABS
--- ============================================================
+CombatSection:CreateToggle({
+    Name = "Auto Loot",
+    CurrentValue = false,
+    Flag = "AutoLoot",
+    Callback = function(v) _G.AutoLoot = v end
+})
 
--- Aura Tab
-local auraContent = contentFrames["Aura"]
-AddToggle(auraContent, "Long Range Kill Aura", function(v) _G.LongAura = v end)
-AddSlider(auraContent, "Aura Range", 50, 500, 200, function(v) _G.AuraRange = v end)
-AddSlider(auraContent, "Aura Speed (ms)", 10, 200, 50, function(v) _G.AuraInterval = v / 1000 end)
-AddToggle(auraContent, "Boss Priority", function(v) _G.BossPriority = v end)
+CombatSection:CreateToggle({
+    Name = "Auto Return",
+    CurrentValue = false,
+    Flag = "AutoReturn",
+    Callback = function(v) _G.AutoReturn = v end
+})
 
--- Combat Tab
-local combatContent = contentFrames["Combat"]
-AddToggle(combatContent, "Auto Combat", function(v) _G.AutoCombat = v end)
-AddToggle(combatContent, "Auto Loot", function(v) _G.AutoLoot = v end)
-AddToggle(combatContent, "Auto Return", function(v) _G.AutoReturn = v end)
-AddToggle(combatContent, "Weapon Switch", function(v) _G.WeaponSwitch = v end)
-AddToggle(combatContent, "Ability Rotation", function(v) _G.AbilityRotation = v end)
-AddToggle(combatContent, "Auto Dodge", function(v) _G.AutoDodge = v end)
-AddSlider(combatContent, "Attack Range", 5, 100, 20, function(v) _G.AttackRange = v end)
-AddSlider(combatContent, "Loot Range", 5, 80, 15, function(v) _G.LootRange = v end)
-AddSlider(combatContent, "Heal Threshold %", 1, 99, 40, function(v) _G.HealThreshold = v end)
+CombatSection:CreateToggle({
+    Name = "Weapon Switch",
+    CurrentValue = false,
+    Flag = "WeaponSwitch",
+    Callback = function(v) _G.WeaponSwitch = v end
+})
 
--- Forge Tab
-local forgeContent = contentFrames["Forge"]
-AddToggle(forgeContent, "Auto Perfect Forge", function(v) _G.AutoForge = v end)
-AddButton(forgeContent, "Collect Ores", function()
-    print("Collect Ores clicked")
-end)
+CombatSection:CreateToggle({
+    Name = "Ability Rotation",
+    CurrentValue = false,
+    Flag = "AbilityRotation",
+    Callback = function(v) _G.AbilityRotation = v end
+})
 
--- Dungeon Tab
-local dungeonContent = contentFrames["Dungeon"]
-AddToggle(dungeonContent, "Auto Destroy Eggs", function(v) _G.AutoEgg = v end)
-AddSlider(dungeonContent, "Egg Range", 20, 500, 200, function(v) _G.EggRange = v end)
-AddButton(dungeonContent, "Destroy All Eggs Now", function()
-    print("Destroy Eggs clicked")
-end)
-AddButton(dungeonContent, "Teleport to Boss", function()
-    print("Teleport to Boss clicked")
-end)
-AddButton(dungeonContent, "Teleport to Portal", function()
-    print("Teleport to Portal clicked")
-end)
+CombatSection:CreateToggle({
+    Name = "Auto Dodge",
+    CurrentValue = false,
+    Flag = "AutoDodge",
+    Callback = function(v) _G.AutoDodge = v end
+})
 
--- ESP Tab
-local espContent = contentFrames["ESP"]
-AddToggle(espContent, "ESP Enemies", function(v) _G.ESPEnemies = v end)
-AddToggle(espContent, "ESP Players", function(v) _G.ESPPlayers = v end)
-AddToggle(espContent, "ESP Loot", function(v) _G.ESPLoot = v end)
-AddToggle(espContent, "ESP Chests/Eggs", function(v) _G.ESPChests = v end)
-AddSlider(espContent, "ESP Transparency", 0, 1, 0.4, function(v) _G.ESPTransparency = v end)
-AddToggle(espContent, "Show Names", function(v) _G.ShowNames = v end)
-AddToggle(espContent, "Show Distance", function(v) _G.ShowDistance = v end)
+CombatSection:CreateSlider({
+    Name = "Attack Range",
+    Range = {5, 100},
+    Increment = 1,
+    Suffix = "studs",
+    CurrentValue = 20,
+    Flag = "AttackRange",
+    Callback = function(v) _G.AttackRange = v end
+})
 
--- ============================================================
--- STEP 4: COMBAT LOGIC (runs in background, errors don't break GUI)
--- ============================================================
+CombatSection:CreateSlider({
+    Name = "Loot Range",
+    Range = {5, 80},
+    Increment = 1,
+    Suffix = "studs",
+    CurrentValue = 15,
+    Flag = "LootRange",
+    Callback = function(v) _G.LootRange = v end
+})
 
-_G.LongAura = false
+CombatSection:CreateSlider({
+    Name = "Heal Threshold %",
+    Range = {1, 99},
+    Increment = 1,
+    Suffix = "%",
+    CurrentValue = 40,
+    Flag = "HealThreshold",
+    Callback = function(v) _G.HealThreshold = v end
+})
+
+-- ===== FORGE TAB =====
+local ForgeSection = ForgeTab:CreateSection("Auto Forge")
+ForgeSection:CreateToggle({
+    Name = "Auto Perfect Forge",
+    CurrentValue = false,
+    Flag = "AutoForge",
+    Callback = function(v) _G.AutoForge = v end
+})
+
+ForgeSection:CreateButton({
+    Name = "Collect Ores",
+    Callback = function()
+        print("Collecting ores...")
+    end
+})
+
+-- ===== DUNGEON TAB =====
+local DungeonSection = DungeonTab:CreateSection("Chest Egg Destroyer")
+DungeonSection:CreateToggle({
+    Name = "Auto Destroy Eggs",
+    CurrentValue = false,
+    Flag = "AutoEgg",
+    Callback = function(v) _G.AutoEgg = v end
+})
+
+DungeonSection:CreateSlider({
+    Name = "Egg Range",
+    Range = {20, 500},
+    Increment = 10,
+    Suffix = "studs",
+    CurrentValue = 200,
+    Flag = "EggRange",
+    Callback = function(v) _G.EggRange = v end
+})
+
+DungeonSection:CreateButton({
+    Name = "Destroy All Eggs Now",
+    Callback = function()
+        print("Destroying eggs...")
+    end
+})
+
+DungeonSection:CreateButton({
+    Name = "Teleport to Boss",
+    Callback = function()
+        print("Teleporting to boss...")
+    end
+})
+
+DungeonSection:CreateButton({
+    Name = "Teleport to Portal",
+    Callback = function()
+        print("Teleporting to portal...")
+    end
+})
+
+-- ===== ESP TAB =====
+local ESPSection = ESPTab:CreateSection("ESP Settings")
+ESPSection:CreateToggle({
+    Name = "ESP Enemies",
+    CurrentValue = false,
+    Flag = "ESPEnemies",
+    Callback = function(v) _G.ESPEnemies = v end
+})
+
+ESPSection:CreateToggle({
+    Name = "ESP Players",
+    CurrentValue = false,
+    Flag = "ESPPlayers",
+    Callback = function(v) _G.ESPPlayers = v end
+})
+
+ESPSection:CreateToggle({
+    Name = "ESP Loot",
+    CurrentValue = false,
+    Flag = "ESPLoot",
+    Callback = function(v) _G.ESPLoot = v end
+})
+
+ESPSection:CreateToggle({
+    Name = "ESP Chests/Eggs",
+    CurrentValue = false,
+    Flag = "ESPChests",
+    Callback = function(v) _G.ESPChests = v end
+})
+
+ESPSection:CreateSlider({
+    Name = "ESP Transparency",
+    Range = {0, 1},
+    Increment = 0.05,
+    Suffix = "",
+    CurrentValue = 0.4,
+    Flag = "ESPTransparency",
+    Callback = function(v) _G.ESPTransparency = v end
+})
+
+ESPSection:CreateToggle({
+    Name = "Show Names",
+    CurrentValue = true,
+    Flag = "ShowNames",
+    Callback = function(v) _G.ShowNames = v end
+})
+
+ESPSection:CreateToggle({
+    Name = "Show Distance",
+    CurrentValue = true,
+    Flag = "ShowDistance",
+    Callback = function(v) _G.ShowDistance = v end
+})
+
+-- ===== INITIALIZE GLOBALS =====
+_G.KillAura = false
 _G.AuraRange = 200
 _G.AuraInterval = 0.05
+_G.BossPriority = false
 _G.AutoCombat = false
 _G.AutoLoot = false
 _G.AutoReturn = false
@@ -289,13 +264,8 @@ _G.HealThreshold = 40
 _G.AutoEgg = false
 _G.EggRange = 200
 _G.AutoForge = false
-_G.WalkSpeed = 16
-_G.JumpPower = 50
-_G.Gravity = 196.2
 _G.AbilityRotation = false
 _G.AutoDodge = false
-_G.BossPriority = false
-_G.AntiIdle = false
 _G.ESPEnemies = false
 _G.ESPPlayers = false
 _G.ESPLoot = false
@@ -304,4 +274,4 @@ _G.ShowNames = true
 _G.ShowDistance = true
 _G.ESPTransparency = 0.4
 
-print("Iron Soul Dungeon loaded. GUI should be visible.")
+print("Iron Soul Dungeon GUI Loaded")
