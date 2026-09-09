@@ -2,7 +2,7 @@
 -- Delta Executor | Rayfield UI
 -- Long-Range Kill Aura | AFK Farm | Auto Perfect Forge | Chest Egg Destroyer
 
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Rayfield = loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/Rayfield'))()
 local Players          = game:GetService("Players")
 local RunService       = game:GetService("RunService")
 local Workspace        = game:GetService("Workspace")
