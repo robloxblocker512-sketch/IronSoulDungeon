@@ -1,38 +1,32 @@
--- IRON SOUL DUNGEON - WORKING SCRIPT
--- Kill Aura + ESP + Auto Farm
+-- IRON SOUL DUNGEON - REAL KILL AURA
+-- Uses your weapon to attack enemies
 
 local player = game.Players.LocalPlayer
 local workspace = game:GetService("Workspace")
 
--- ===== KILL AURA =====
-local killAuraEnabled = false
-local espEnabled = false
-local espObjects = {}
-
--- GUI
+-- ===== GUI =====
 local screenGui = Instance.new("ScreenGui")
-screenGui.Parent = player.PlayerGui
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.Name = "IronSoulGUI"
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 200, 0, 150)
-mainFrame.Position = UDim2.new(0.5, -100, 0.5, -75)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+mainFrame.Size = UDim2.new(0, 200, 0, 80)
+mainFrame.Position = UDim2.new(0.5, -100, 0.5, -40)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 mainFrame.BackgroundTransparency = 0
 mainFrame.BorderSizePixel = 0
 mainFrame.Parent = screenGui
 
--- Title
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, 0, 0, 30)
-titleLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-titleLabel.BorderSizePixel = 0
-titleLabel.Text = "Iron Soul Dungeon"
-titleLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
-titleLabel.TextSize = 16
-titleLabel.Font = Enum.Font.GothamBold
-titleLabel.Parent = mainFrame
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+title.BorderSizePixel = 0
+title.Text = "Kill Aura"
+title.TextColor3 = Color3.fromRGB(255, 200, 100)
+title.TextSize = 16
+title.Font = Enum.Font.GothamBold
+title.Parent = mainFrame
 
--- Kill Aura Button
 local killBtn = Instance.new("TextButton")
 killBtn.Size = UDim2.new(0.8, 0, 0, 30)
 killBtn.Position = UDim2.new(0.1, 0, 0, 40)
@@ -44,44 +38,46 @@ killBtn.TextSize = 14
 killBtn.Font = Enum.Font.GothamBold
 killBtn.Parent = mainFrame
 
+local killAuraActive = false
+
 killBtn.MouseButton1Click:Connect(function()
-    killAuraEnabled = not killAuraEnabled
-    killBtn.Text = killAuraEnabled and "Kill Aura: ON" or "Kill Aura: OFF"
-    killBtn.BackgroundColor3 = killAuraEnabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(60, 60, 70)
+    killAuraActive = not killAuraActive
+    killBtn.Text = killAuraActive and "Kill Aura: ON" or "Kill Aura: OFF"
+    killBtn.BackgroundColor3 = killAuraActive and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(60, 60, 70)
 end)
 
--- ESP Button
-local espBtn = Instance.new("TextButton")
-espBtn.Size = UDim2.new(0.8, 0, 0, 30)
-espBtn.Position = UDim2.new(0.1, 0, 0, 80)
-espBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-espBtn.BorderSizePixel = 0
-espBtn.Text = "ESP: OFF"
-espBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-espBtn.TextSize = 14
-espBtn.Font = Enum.Font.GothamBold
-espBtn.Parent = mainFrame
-
-espBtn.MouseButton1Click:Connect(function()
-    espEnabled = not espEnabled
-    espBtn.Text = espEnabled and "ESP: ON" or "ESP: OFF"
-    espBtn.BackgroundColor3 = espEnabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(60, 60, 70)
-    if not espEnabled then
-        for _, obj in pairs(espObjects) do pcall(function() obj:Destroy() end) end
-        espObjects = {}
-    end
-end)
-
--- ===== KILL AURA LOOP =====
+-- ===== KILL AURA WITH WEAPON =====
 task.spawn(function()
     while true do
-        task.wait(0.1)
-        if not killAuraEnabled then continue end
+        task.wait(0.2)
+        if not killAuraActive then continue end
         
         local char = player.Character
         if not char then continue end
         local root = char:FindFirstChild("HumanoidRootPart")
         if not root then continue end
+        
+        -- Get the weapon the player is holding
+        local tool = char:FindFirstChildOfClass("Tool")
+        if not tool then
+            -- If no weapon in hand, try to equip one from backpack
+            local backpack = player.Backpack
+            for _, item in ipairs(backpack:GetChildren()) do
+                if item:IsA("Tool") then
+                    tool = item
+                    break
+                end
+            end
+        end
+        
+        if not tool then
+            print("No weapon found")
+            continue
+        end
+        
+        -- Find nearest enemy
+        local nearestEnemy = nil
+        local nearestDist = math.huge
         
         for _, obj in ipairs(workspace:GetDescendants()) do
             if obj:IsA("Model") then
@@ -90,43 +86,46 @@ task.spawn(function()
                 if hum and hrp and hum.Health > 0 then
                     if not game.Players:GetPlayerFromCharacter(obj) then
                         local dist = (hrp.Position - root.Position).Magnitude
-                        if dist <= 200 then
-                            hum.Health = 0
+                        if dist < nearestDist and dist <= 30 then
+                            nearestEnemy = obj
+                            nearestDist = dist
                         end
                     end
                 end
             end
         end
-    end
-end)
-
--- ===== ESP LOOP =====
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-        if not espEnabled then continue end
         
-        -- Clear old ESP
-        for _, obj in pairs(espObjects) do pcall(function() obj:Destroy() end) end
-        espObjects = {}
-        
-        for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj:IsA("Model") then
-                local hum = obj:FindFirstChildOfClass("Humanoid")
-                local hrp = obj:FindFirstChild("HumanoidRootPart")
-                if hum and hrp and hum.Health > 0 then
-                    local isPlayer = game.Players:GetPlayerFromCharacter(obj)
-                    local color = isPlayer and Color3.fromRGB(50, 150, 255) or Color3.fromRGB(255, 50, 50)
-                    
-                    local highlight = Instance.new("Highlight")
-                    highlight.Parent = obj
-                    highlight.FillColor = color
-                    highlight.FillTransparency = 0.5
-                    table.insert(espObjects, highlight)
+        if nearestEnemy then
+            local hrp = nearestEnemy:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                -- Face the enemy
+                root.CFrame = CFrame.new(root.Position, hrp.Position)
+                -- Equip the tool if not already equipped
+                if tool.Parent ~= char then
+                    tool.Parent = char
+                    task.wait(0.1)
                 end
+                -- Swing the weapon
+                tool:Activate()
+                -- Fire remote events if they exist
+                pcall(function()
+                    local remote = tool:FindFirstChildOfClass("RemoteEvent")
+                    if remote then
+                        remote:FireServer(nearestEnemy, hrp.Position)
+                    end
+                end)
+                -- Try other common remote names
+                pcall(function()
+                    local attackRemote = tool:FindFirstChild("Attack")
+                    if attackRemote and attackRemote:IsA("RemoteEvent") then
+                        attackRemote:FireServer(nearestEnemy)
+                    end
+                end)
+                print("Attacking:", nearestEnemy.Name)
+                task.wait(0.3) -- Wait between attacks
             end
         end
     end
 end)
 
-print("Script loaded! Click the buttons to toggle Kill Aura and ESP.")
+print("Kill Aura loaded. Click the button to toggle.")
