@@ -1,5 +1,5 @@
--- Iron Soul Dungeon - Rayfield FIXED (Callbacks Working)
--- Delta Executor
+-- Iron Soul Dungeon - Rayfield GUI
+-- Kill Aura + ESP (Players & NPCs)
 
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
@@ -10,346 +10,144 @@ local Window = Rayfield:CreateWindow({
     Theme = "Dark",
 })
 
--- ===== GLOBALS (with debug prints) =====
+-- ===== GLOBALS =====
 _G.KillAura = false
-_G.AuraRange = 200
-_G.AuraInterval = 0.05
-_G.BossPriority = false
-_G.AutoCombat = false
-_G.AutoLoot = false
-_G.AutoReturn = false
-_G.WeaponSwitch = false
-_G.AttackRange = 20
-_G.LootRange = 15
-_G.HealThreshold = 40
-_G.AutoEgg = false
-_G.EggRange = 200
-_G.AutoForge = false
-_G.AbilityRotation = false
-_G.AutoDodge = false
-_G.ESPEnemies = false
-_G.ESPPlayers = false
-_G.ESPLoot = false
-_G.ESPChests = false
-_G.ShowNames = true
-_G.ShowDistance = true
-_G.ESPTransparency = 0.4
+_G.KillRange = 200
+_G.ESP = false
 
--- ===== DEBUG HELPER =====
-local function debugToggle(name, value)
-    print("[DEBUG] " .. name .. " = " .. tostring(value))
+-- ===== KILL AURA LOGIC =====
+local function KillAuraLoop()
+    while task.wait(0.1) do
+        if not _G.KillAura then continue end
+        local char = game.Players.LocalPlayer.Character
+        if not char then continue end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then continue end
+        
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") then
+                local hum = obj:FindFirstChildOfClass("Humanoid")
+                local hrp = obj:FindFirstChild("HumanoidRootPart")
+                if hum and hrp and hum.Health > 0 then
+                    local dist = (hrp.Position - root.Position).Magnitude
+                    if dist <= _G.KillRange then
+                        -- Check if it's an enemy (not a player)
+                        if not game.Players:GetPlayerFromCharacter(obj) then
+                            hum.Health = 0
+                        end
+                    end
+                end
+            end
+        end
+    end
 end
 
--- ===== AURA TAB =====
-local AuraTab = Window:CreateTab("Aura")
+-- ===== ESP LOGIC =====
+local ESPObjects = {}
 
-AuraTab:CreateToggle({
+local function ClearESP()
+    for _, v in pairs(ESPObjects) do
+        pcall(function() v:Destroy() end)
+    end
+    ESPObjects = {}
+end
+
+local function UpdateESP()
+    ClearESP()
+    if not _G.ESP then return end
+    
+    local char = game.Players.LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    
+    -- ESP for NPCs (Enemies)
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") then
+            local hum = obj:FindFirstChildOfClass("Humanoid")
+            local hrp = obj:FindFirstChild("HumanoidRootPart")
+            if hum and hrp and hum.Health > 0 then
+                local isPlayer = game.Players:GetPlayerFromCharacter(obj)
+                local color = isPlayer and Color3.fromRGB(50, 150, 255) or Color3.fromRGB(255, 50, 50)
+                
+                -- Highlight
+                local highlight = Instance.new("Highlight")
+                highlight.Parent = obj
+                highlight.FillColor = color
+                highlight.FillTransparency = 0.5
+                highlight.OutlineColor = color
+                highlight.OutlineTransparency = 0
+                table.insert(ESPObjects, highlight)
+            end
+        end
+    end
+end
+
+-- ===== GUI TABS =====
+local MainTab = Window:CreateTab("Main")
+
+MainTab:CreateToggle({
     Name = "Kill Aura",
     CurrentValue = false,
     Flag = "KillAura",
     Callback = function(v)
         _G.KillAura = v
-        debugToggle("Kill Aura", v)
-        Rayfield:Notify({Title = "Kill Aura", Content = v and "ON" or "OFF", Duration = 1})
+        Rayfield:Notify({
+            Title = "Kill Aura",
+            Content = v and "ON" or "OFF",
+            Duration = 2
+        })
     end
 })
 
-AuraTab:CreateSlider({
-    Name = "Aura Range",
+MainTab:CreateSlider({
+    Name = "Kill Range",
     Range = {50, 500},
     Increment = 10,
     Suffix = "studs",
     CurrentValue = 200,
-    Flag = "AuraRange",
+    Flag = "KillRange",
     Callback = function(v)
-        _G.AuraRange = v
-        debugToggle("Aura Range", v)
+        _G.KillRange = v
     end
 })
 
-AuraTab:CreateSlider({
-    Name = "Aura Speed (ms)",
-    Range = {10, 200},
-    Increment = 5,
-    Suffix = "ms",
-    CurrentValue = 50,
-    Flag = "AuraSpeed",
-    Callback = function(v)
-        _G.AuraInterval = v / 1000
-        debugToggle("Aura Speed", v)
-    end
-})
-
-AuraTab:CreateToggle({
-    Name = "Boss Priority",
+MainTab:CreateToggle({
+    Name = "ESP (Players + NPCs)",
     CurrentValue = false,
-    Flag = "BossPriority",
+    Flag = "ESP",
     Callback = function(v)
-        _G.BossPriority = v
-        debugToggle("Boss Priority", v)
-    end
-})
-
--- ===== COMBAT TAB =====
-local CombatTab = Window:CreateTab("Combat")
-
-CombatTab:CreateToggle({
-    Name = "Auto Combat",
-    CurrentValue = false,
-    Flag = "AutoCombat",
-    Callback = function(v)
-        _G.AutoCombat = v
-        debugToggle("Auto Combat", v)
-        Rayfield:Notify({Title = "Auto Combat", Content = v and "ON" or "OFF", Duration = 1})
-    end
-})
-
-CombatTab:CreateToggle({
-    Name = "Auto Loot",
-    CurrentValue = false,
-    Flag = "AutoLoot",
-    Callback = function(v)
-        _G.AutoLoot = v
-        debugToggle("Auto Loot", v)
-    end
-})
-
-CombatTab:CreateToggle({
-    Name = "Auto Return",
-    CurrentValue = false,
-    Flag = "AutoReturn",
-    Callback = function(v)
-        _G.AutoReturn = v
-        debugToggle("Auto Return", v)
-    end
-})
-
-CombatTab:CreateToggle({
-    Name = "Weapon Switch",
-    CurrentValue = false,
-    Flag = "WeaponSwitch",
-    Callback = function(v)
-        _G.WeaponSwitch = v
-        debugToggle("Weapon Switch", v)
-    end
-})
-
-CombatTab:CreateToggle({
-    Name = "Ability Rotation",
-    CurrentValue = false,
-    Flag = "AbilityRotation",
-    Callback = function(v)
-        _G.AbilityRotation = v
-        debugToggle("Ability Rotation", v)
-    end
-})
-
-CombatTab:CreateToggle({
-    Name = "Auto Dodge",
-    CurrentValue = false,
-    Flag = "AutoDodge",
-    Callback = function(v)
-        _G.AutoDodge = v
-        debugToggle("Auto Dodge", v)
-    end
-})
-
-CombatTab:CreateSlider({
-    Name = "Attack Range",
-    Range = {5, 100},
-    Increment = 1,
-    Suffix = "studs",
-    CurrentValue = 20,
-    Flag = "AttackRange",
-    Callback = function(v)
-        _G.AttackRange = v
-        debugToggle("Attack Range", v)
-    end
-})
-
-CombatTab:CreateSlider({
-    Name = "Loot Range",
-    Range = {5, 80},
-    Increment = 1,
-    Suffix = "studs",
-    CurrentValue = 15,
-    Flag = "LootRange",
-    Callback = function(v)
-        _G.LootRange = v
-        debugToggle("Loot Range", v)
-    end
-})
-
-CombatTab:CreateSlider({
-    Name = "Heal Threshold %",
-    Range = {1, 99},
-    Increment = 1,
-    Suffix = "%",
-    CurrentValue = 40,
-    Flag = "HealThreshold",
-    Callback = function(v)
-        _G.HealThreshold = v
-        debugToggle("Heal Threshold", v)
-    end
-})
-
--- ===== FORGE TAB =====
-local ForgeTab = Window:CreateTab("Forge")
-
-ForgeTab:CreateToggle({
-    Name = "Auto Perfect Forge",
-    CurrentValue = false,
-    Flag = "AutoForge",
-    Callback = function(v)
-        _G.AutoForge = v
-        debugToggle("Auto Forge", v)
+        _G.ESP = v
         if v then
-            Rayfield:Notify({Title = "Forge", Content = "Watching for forge bar...", Duration = 2})
+            UpdateESP()
+        else
+            ClearESP()
+        end
+        Rayfield:Notify({
+            Title = "ESP",
+            Content = v and "ON" or "OFF",
+            Duration = 2
+        })
+    end
+})
+
+-- ===== ESP UPDATE LOOP =====
+task.spawn(function()
+    while task.wait(1) do
+        if _G.ESP then
+            pcall(UpdateESP)
         end
     end
-})
+end)
 
-ForgeTab:CreateButton({
-    Name = "Collect Ores",
-    Callback = function()
-        print("[DEBUG] Collect Ores clicked")
-        Rayfield:Notify({Title = "Ores", Content = "Collecting...", Duration = 2})
-        -- Add your ore collection logic here
-    end
-})
-
--- ===== DUNGEON TAB =====
-local DungeonTab = Window:CreateTab("Dungeon")
-
-DungeonTab:CreateToggle({
-    Name = "Auto Destroy Eggs",
-    CurrentValue = false,
-    Flag = "AutoEgg",
-    Callback = function(v)
-        _G.AutoEgg = v
-        debugToggle("Auto Egg", v)
-    end
-})
-
-DungeonTab:CreateSlider({
-    Name = "Egg Range",
-    Range = {20, 500},
-    Increment = 10,
-    Suffix = "studs",
-    CurrentValue = 200,
-    Flag = "EggRange",
-    Callback = function(v)
-        _G.EggRange = v
-        debugToggle("Egg Range", v)
-    end
-})
-
-DungeonTab:CreateButton({
-    Name = "Destroy All Eggs Now",
-    Callback = function()
-        print("[DEBUG] Destroy Eggs clicked")
-        Rayfield:Notify({Title = "Eggs", Content = "Destroying all eggs...", Duration = 2})
-    end
-})
-
-DungeonTab:CreateButton({
-    Name = "Teleport to Boss",
-    Callback = function()
-        print("[DEBUG] Teleport to Boss clicked")
-        Rayfield:Notify({Title = "Teleport", Content = "Teleporting to boss...", Duration = 2})
-    end
-})
-
-DungeonTab:CreateButton({
-    Name = "Teleport to Portal",
-    Callback = function()
-        print("[DEBUG] Teleport to Portal clicked")
-        Rayfield:Notify({Title = "Teleport", Content = "Teleporting to portal...", Duration = 2})
-    end
-})
-
--- ===== ESP TAB =====
-local ESPTab = Window:CreateTab("ESP")
-
-ESPTab:CreateToggle({
-    Name = "ESP Enemies",
-    CurrentValue = false,
-    Flag = "ESPEnemies",
-    Callback = function(v)
-        _G.ESPEnemies = v
-        debugToggle("ESP Enemies", v)
-    end
-})
-
-ESPTab:CreateToggle({
-    Name = "ESP Players",
-    CurrentValue = false,
-    Flag = "ESPPlayers",
-    Callback = function(v)
-        _G.ESPPlayers = v
-        debugToggle("ESP Players", v)
-    end
-})
-
-ESPTab:CreateToggle({
-    Name = "ESP Loot",
-    CurrentValue = false,
-    Flag = "ESPLoot",
-    Callback = function(v)
-        _G.ESPLoot = v
-        debugToggle("ESP Loot", v)
-    end
-})
-
-ESPTab:CreateToggle({
-    Name = "ESP Chests/Eggs",
-    CurrentValue = false,
-    Flag = "ESPChests",
-    Callback = function(v)
-        _G.ESPChests = v
-        debugToggle("ESP Chests", v)
-    end
-})
-
-ESPTab:CreateSlider({
-    Name = "ESP Transparency",
-    Range = {0, 1},
-    Increment = 0.05,
-    Suffix = "",
-    CurrentValue = 0.4,
-    Flag = "ESPTransparency",
-    Callback = function(v)
-        _G.ESPTransparency = v
-        debugToggle("ESP Transparency", v)
-    end
-})
-
-ESPTab:CreateToggle({
-    Name = "Show Names",
-    CurrentValue = true,
-    Flag = "ShowNames",
-    Callback = function(v)
-        _G.ShowNames = v
-        debugToggle("Show Names", v)
-    end
-})
-
-ESPTab:CreateToggle({
-    Name = "Show Distance",
-    CurrentValue = true,
-    Flag = "ShowDistance",
-    Callback = function(v)
-        _G.ShowDistance = v
-        debugToggle("Show Distance", v)
-    end
-})
+-- ===== START KILL AURA LOOP =====
+task.spawn(KillAuraLoop)
 
 -- ===== NOTIFICATION =====
 Rayfield:Notify({
     Title = "Iron Soul Dungeon",
-    Content = "GUI Loaded - Toggle features above",
+    Content = "GUI Loaded - Toggle Kill Aura or ESP",
     Duration = 3,
 })
 
-print("[DEBUG] Iron Soul Dungeon GUI Loaded")
-print("[DEBUG] Toggle any feature to see console output")
+print("Iron Soul Dungeon GUI Loaded")
