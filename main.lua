@@ -1,9 +1,8 @@
--- Iron Soul: Dungeon | Venyx UI | FINAL
+-- Iron Soul: Dungeon | Hydro UI | FINAL
 -- Delta Executor | 100% Working
 
-local Venyx = loadstring(game:HttpGet("https://raw.githubusercontent.com/zzerexx/Venyx/main/Source"))()
-
-local Window = Venyx:CreateWindow("Iron Soul Dungeon", "Main")
+local Hydro = loadstring(game:HttpGet("https://raw.githubusercontent.com/FireMario211/Hydro-UI/main/Hydro"))()
+local Window = Hydro:CreateWindow("Iron Soul Dungeon", "Main")
 
 -- ===== STATE =====
 local S = {
@@ -365,37 +364,37 @@ local function StartForgeWatcher()
     end)
 end
 
--- ===== GUI TABS =====
+-- ===== HYDRO UI TABS =====
 
 -- Kill Aura
-local AuraTab = Window:AddTab("Kill Aura")
-local AuraSection = AuraTab:AddSection("Long Range AFK")
-AuraSection:AddToggle("Long Range Kill Aura", function(v) S.LongAura = v end)
-AuraSection:AddSlider("Aura Range", 50, 500, 200, function(v) S.AuraRange = v end)
-AuraSection:AddSlider("Aura Speed (ms)", 10, 200, 50, function(v) S.AuraInterval = v / 1000 end)
-AuraSection:AddToggle("Boss Priority", function(v) S.BossPriority = v end)
+local AuraTab = Window:Tab("Kill Aura")
+local AuraSection = AuraTab:Section("Long Range AFK")
+AuraSection:Toggle("Long Range Kill Aura", function(v) S.LongAura = v end)
+AuraSection:Slider("Aura Range", 50, 500, 200, function(v) S.AuraRange = v end)
+AuraSection:Slider("Aura Speed (ms)", 10, 200, 50, function(v) S.AuraInterval = v / 1000 end)
+AuraSection:Toggle("Boss Priority", function(v) S.BossPriority = v end)
 
 -- Combat
-local CombatTab = Window:AddTab("Combat")
-local CombatSection = CombatTab:AddSection("Auto Combat")
-CombatSection:AddToggle("Auto Combat", function(v) S.AutoCombat = v end)
-CombatSection:AddToggle("Auto Loot", function(v) S.AutoLoot = v end)
-CombatSection:AddToggle("Auto Return", function(v) S.AutoReturn = v end)
-CombatSection:AddToggle("Weapon Switch", function(v) S.WeaponSwitch = v end)
-CombatSection:AddToggle("Ability Rotation", function(v) S.AbilityRotation = v end)
-CombatSection:AddToggle("Auto Dodge", function(v) S.AutoDodge = v end)
-CombatSection:AddSlider("Attack Range", 5, 100, 20, function(v) S.AttackRange = v end)
-CombatSection:AddSlider("Loot Range", 5, 80, 15, function(v) S.LootRange = v end)
-CombatSection:AddSlider("Heal Threshold %", 1, 99, 40, function(v) S.HealThreshold = v end)
+local CombatTab = Window:Tab("Combat")
+local CombatSection = CombatTab:Section("Auto Combat")
+CombatSection:Toggle("Auto Combat", function(v) S.AutoCombat = v end)
+CombatSection:Toggle("Auto Loot", function(v) S.AutoLoot = v end)
+CombatSection:Toggle("Auto Return", function(v) S.AutoReturn = v end)
+CombatSection:Toggle("Weapon Switch", function(v) S.WeaponSwitch = v end)
+CombatSection:Toggle("Ability Rotation", function(v) S.AbilityRotation = v end)
+CombatSection:Toggle("Auto Dodge", function(v) S.AutoDodge = v end)
+CombatSection:Slider("Attack Range", 5, 100, 20, function(v) S.AttackRange = v end)
+CombatSection:Slider("Loot Range", 5, 80, 15, function(v) S.LootRange = v end)
+CombatSection:Slider("Heal Threshold %", 1, 99, 40, function(v) S.HealThreshold = v end)
 
 -- Forge
-local ForgeTab = Window:AddTab("Forge")
-local ForgeSection = ForgeTab:AddSection("Auto Forge")
-ForgeSection:AddToggle("Auto Perfect Forge", function(v)
+local ForgeTab = Window:Tab("Forge")
+local ForgeSection = ForgeTab:Section("Auto Forge")
+ForgeSection:Toggle("Auto Perfect Forge", function(v)
     S.AutoForge = v
     if v then StartForgeWatcher() end
 end)
-ForgeSection:AddButton("Collect Ores", function()
+ForgeSection:Button("Collect Ores", function()
     if not RefreshChar() then return end
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("Model") or obj:IsA("BasePart") then
@@ -409,17 +408,17 @@ ForgeSection:AddButton("Collect Ores", function()
 end)
 
 -- Dungeon
-local DungeonTab = Window:AddTab("Dungeon")
-local DungeonSection = DungeonTab:AddSection("Chest Egg Destroyer")
-DungeonSection:AddToggle("Auto Destroy Eggs", function(v) S.AutoEgg = v end)
-DungeonSection:AddSlider("Egg Range", 20, 500, 200, function(v) S.EggRange = v end)
-DungeonSection:AddButton("Destroy All Eggs Now", function()
+local DungeonTab = Window:Tab("Dungeon")
+local DungeonSection = DungeonTab:Section("Chest Egg Destroyer")
+DungeonSection:Toggle("Auto Destroy Eggs", function(v) S.AutoEgg = v end)
+DungeonSection:Slider("Egg Range", 20, 500, 200, function(v) S.EggRange = v end)
+DungeonSection:Button("Destroy All Eggs Now", function()
     if not RefreshChar() then return end
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if IsEgg(obj) then DestroyEgg(obj) end
     end
 end)
-DungeonSection:AddButton("Teleport to Boss", function()
+DungeonSection:Button("Teleport to Boss", function()
     if not RefreshChar() then return end
     local boss = GetNearestEnemy(math.huge, true)
     if boss then
@@ -427,7 +426,7 @@ DungeonSection:AddButton("Teleport to Boss", function()
         if r then Root.CFrame = r.CFrame + Vector3.new(0, 3, 6) end
     end
 end)
-DungeonSection:AddButton("Teleport to Portal", function()
+DungeonSection:Button("Teleport to Portal", function()
     if not RefreshChar() then return end
     local portal = Workspace:FindFirstChild("DungeonPortal", true) or Workspace:FindFirstChild("ReturnPortal", true) or Workspace:FindFirstChild("Entrance", true)
     if portal then
@@ -437,35 +436,35 @@ DungeonSection:AddButton("Teleport to Portal", function()
 end)
 
 -- Movement
-local MoveTab = Window:AddTab("Movement")
-local MoveSection = MoveTab:AddSection("Stats")
-MoveSection:AddSlider("Walk Speed", 16, 500, 16, function(v)
+local MoveTab = Window:Tab("Movement")
+local MoveSection = MoveTab:Section("Stats")
+MoveSection:Slider("Walk Speed", 16, 500, 16, function(v)
     S.WalkSpeed = v
     if Hum then Hum.WalkSpeed = v end
 end)
-MoveSection:AddSlider("Jump Power", 50, 500, 50, function(v)
+MoveSection:Slider("Jump Power", 50, 500, 50, function(v)
     S.JumpPower = v
     if Hum then Hum.JumpPower = v end
 end)
-MoveSection:AddSlider("Gravity", 0, 400, 196, function(v)
+MoveSection:Slider("Gravity", 0, 400, 196, function(v)
     S.Gravity = v
     Workspace.Gravity = v
 end)
-MoveSection:AddButton("Reset Movement", function()
+MoveSection:Button("Reset Movement", function()
     S.WalkSpeed = 16; S.JumpPower = 50; S.Gravity = 196.2
     if Hum then Hum.WalkSpeed = 16; Hum.JumpPower = 50 end
     Workspace.Gravity = 196.2
 end)
 
 -- Utility
-local UtilTab = Window:AddTab("Utility")
-local UtilSection = UtilTab:AddSection("Tools")
-UtilSection:AddToggle("Anti-Idle", function(v) S.AntiIdle = v end)
-UtilSection:AddButton("Kill Character", function()
+local UtilTab = Window:Tab("Utility")
+local UtilSection = UtilTab:Section("Tools")
+UtilSection:Toggle("Anti-Idle", function(v) S.AntiIdle = v end)
+UtilSection:Button("Kill Character", function()
     if Hum then Hum.Health = 0 end
     FireRemote("kill")
 end)
-UtilSection:AddButton("Reset GUI", function()
+UtilSection:Button("Reset GUI", function()
     for k, v in pairs(S) do
         if type(v) == "boolean" then S[k] = false end
     end
@@ -476,20 +475,19 @@ UtilSection:AddButton("Reset GUI", function()
     Workspace.Gravity = 196.2
     ClearESP()
 end)
-UtilSection:AddButton("Rejoin Server", function()
+UtilSection:Button("Rejoin Server", function()
     game:GetService("TeleportService"):Teleport(game.PlaceId, LP)
 end)
 
 -- ESP
-local ESPTab = Window:AddTab("ESP")
-local ESPSection = ESPTab:AddSection("ESP Settings")
-ESPSection:AddToggle("ESP Enemies", function(v) S.ESPEnemies = v end)
-ESPSection:AddToggle("ESP Players", function(v) S.ESPPlayers = v end)
-ESPSection:AddToggle("ESP Loot", function(v) S.ESPLoot = v end)
-ESPSection:AddToggle("ESP Chests/Eggs", function(v) S.ESPChests = v end)
-ESPSection:AddSlider("ESP Transparency", 0, 1, 0.4, function(v) S.ESPTransparency = v end)
-ESPSection:AddToggle("Show Names", function(v) S.ShowNames = v end)
-ESPSection:AddToggle("Show Distance", function(v) S.ShowDistance = v end)
+local ESPTab = Window:Tab("ESP")
+local ESPSection = ESPTab:Section("ESP Settings")
+ESPSection:Toggle("ESP Enemies", function(v) S.ESPEnemies = v end)
+ESPSection:Toggle("ESP Players", function(v) S.ESPPlayers = v end)
+ESPSection:Toggle("ESP Loot", function(v) S.ESPLoot = v end)
+ESPSection:Toggle("ESP Chests/Eggs", function(v) S.ESPChests = v end)
+ESPSection:Slider("ESP Transparency", 0, 1, 0.4, function(v) S.ESPTransparency = v end)
+ESPSection:Toggle("Show Names", function(v) S.ShowNames = v end)
+ESPSection:Toggle("Show Distance", function(v) S.ShowDistance = v end)
 
-Window:SelectTab(1)
 print("Iron Soul Dungeon loaded. GUI open.")
