@@ -1,8 +1,121 @@
--- Iron Soul: Dungeon | Hydro UI | FINAL
--- Delta Executor | 100% Working
+-- Iron Soul: Dungeon | SELF-CONTAINED UI
+-- No external libraries — 100% works on Delta
 
-local Hydro = loadstring(game:HttpGet("https://raw.githubusercontent.com/FireMario211/Hydro-UI/main/Hydro"))()
-local Window = Hydro:CreateWindow("Iron Soul Dungeon", "Main")
+-- ===== CREATE GUI FROM SCRATCH =====
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui
+screenGui.Name = "IronSoulGUI"
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 350, 0, 500)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -250)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+mainFrame.BackgroundTransparency = 0.1
+mainFrame.BorderSizePixel = 0
+mainFrame.ClipsDescendants = true
+mainFrame.Parent = screenGui
+
+-- Draggable
+local function makeDraggable(frame)
+    local dragStart, startPos
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragStart = input.Position
+            startPos = frame.Position
+        end
+    end)
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and dragStart then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    frame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragStart = nil
+        end
+    end)
+end
+makeDraggable(mainFrame)
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+title.BackgroundTransparency = 0
+title.BorderSizePixel = 0
+title.Text = "Iron Soul Dungeon"
+title.TextColor3 = Color3.fromRGB(255, 200, 100)
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+title.Parent = mainFrame
+
+-- Close button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 25, 0, 25)
+closeBtn.Position = UDim2.new(1, -30, 0, 3)
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+closeBtn.BorderSizePixel = 0
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.TextSize = 14
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.Parent = mainFrame
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+-- Tab buttons
+local tabContainer = Instance.new("Frame")
+tabContainer.Size = UDim2.new(1, 0, 0, 30)
+tabContainer.Position = UDim2.new(0, 0, 0, 30)
+tabContainer.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+tabContainer.BackgroundTransparency = 0
+tabContainer.BorderSizePixel = 0
+tabContainer.Parent = mainFrame
+
+local tabs = {"Aura", "Combat", "Forge", "Dungeon", "ESP"}
+local tabButtons = {}
+local contentFrames = {}
+
+for i, name in ipairs(tabs) do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1 / #tabs, -2, 1, -2)
+    btn.Position = UDim2.new((i - 1) / #tabs, 1, 0, 1)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    btn.BorderSizePixel = 0
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.GothamBold
+    btn.Parent = tabContainer
+    tabButtons[name] = btn
+
+    local content = Instance.new("ScrollingFrame")
+    content.Size = UDim2.new(1, -10, 1, -10)
+    content.Position = UDim2.new(0, 5, 0, 65)
+    content.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    content.BackgroundTransparency = 1
+    content.BorderSizePixel = 0
+    content.Visible = (i == 1)
+    content.CanvasSize = UDim2.new(0, 0, 0, 0)
+    content.ScrollBarThickness = 4
+    content.Parent = mainFrame
+    contentFrames[name] = content
+
+    btn.MouseButton1Click:Connect(function()
+        for _, cf in pairs(contentFrames) do cf.Visible = false end
+        content.Visible = true
+        for _, b in pairs(tabButtons) do
+            b.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+        end
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    end)
+end
 
 -- ===== STATE =====
 local S = {
@@ -14,11 +127,205 @@ local S = {
     Gravity = 196.2, AbilityRotation = false, AutoDodge = false,
     BossPriority = false, AntiIdle = false,
     ESPEnemies = false, ESPPlayers = false, ESPLoot = false, ESPChests = false,
-    ShowNames = true, ShowDistance = true, ESPTransparency = 0.4,
-    ESPColor = Color3.fromRGB(255,50,50), PlayerESPColor = Color3.fromRGB(50,150,255),
-    LootESPColor = Color3.fromRGB(255,215,0), ChestESPColor = Color3.fromRGB(0,255,100),
-    ESPObjects = {}, AbilityIndex = 1, AbilityList = {"Q","E","R","F","Z","X","C"},
+    ESPObjects = {},
 }
+
+-- ===== HELPER FUNCTIONS TO BUILD UI CONTROLS =====
+local function AddToggle(parent, label, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -10, 0, 30)
+    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    frame.BorderSizePixel = 0
+    frame.Parent = parent
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0.7, 0, 1, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = label
+    lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+    lbl.TextSize = 13
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Font = Enum.Font.Gotham
+    lbl.Parent = frame
+
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 60, 0, 22)
+    btn.Position = UDim2.new(0.75, 0, 0.5, -11)
+    btn.BackgroundColor3 = Color3.fromRGB(80, 80, 85)
+    btn.BorderSizePixel = 0
+    btn.Text = "OFF"
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.GothamBold
+    btn.Parent = frame
+
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = state and "ON" or "OFF"
+        btn.BackgroundColor3 = state and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(80, 80, 85)
+        callback(state)
+    end)
+
+    parent.CanvasSize = UDim2.new(0, 0, 0, parent.CanvasSize.Y.Offset + 35)
+    return frame
+end
+
+local function AddSlider(parent, label, min, max, default, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -10, 0, 45)
+    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    frame.BorderSizePixel = 0
+    frame.Parent = parent
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0.5, 0, 0.5, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = label .. ": " .. tostring(default)
+    lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+    lbl.TextSize = 12
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Font = Enum.Font.Gotham
+    lbl.Parent = frame
+
+    local slider = Instance.new("Frame")
+    slider.Size = UDim2.new(0.85, 0, 0, 6)
+    slider.Position = UDim2.new(0.05, 0, 0.75, 0)
+    slider.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+    slider.BorderSizePixel = 0
+    slider.Parent = frame
+
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(200, 150, 50)
+    fill.BorderSizePixel = 0
+    fill.Parent = slider
+
+    local value = default
+    local dragging = false
+
+    local function update(pos)
+        local rel = math.clamp((pos.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
+        value = math.floor(min + (max - min) * rel + 0.5)
+        fill.Size = UDim2.new(rel, 0, 1, 0)
+        lbl.Text = label .. ": " .. tostring(value)
+        callback(value)
+    end
+
+    slider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            update(input.Position)
+        end
+    end)
+    slider.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            update(input.Position)
+        end
+    end)
+    slider.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    parent.CanvasSize = UDim2.new(0, 0, 0, parent.CanvasSize.Y.Offset + 50)
+    return frame
+end
+
+local function AddButton(parent, label, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9, 0, 0, 30)
+    btn.Position = UDim2.new(0.05, 0, 0, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 55)
+    btn.BorderSizePixel = 0
+    btn.Text = label
+    btn.TextColor3 = Color3.fromRGB(220, 220, 220)
+    btn.TextSize = 13
+    btn.Font = Enum.Font.GothamBold
+    btn.Parent = parent
+    btn.MouseButton1Click:Connect(callback)
+
+    parent.CanvasSize = UDim2.new(0, 0, 0, parent.CanvasSize.Y.Offset + 35)
+    return btn
+end
+
+-- ===== BUILD UI TABS =====
+
+-- Aura Tab
+local auraContent = contentFrames["Aura"]
+AddToggle(auraContent, "Long Range Kill Aura", function(v) S.LongAura = v end)
+AddSlider(auraContent, "Aura Range", 50, 500, 200, function(v) S.AuraRange = v end)
+AddSlider(auraContent, "Aura Speed (ms)", 10, 200, 50, function(v) S.AuraInterval = v / 1000 end)
+AddToggle(auraContent, "Boss Priority", function(v) S.BossPriority = v end)
+
+-- Combat Tab
+local combatContent = contentFrames["Combat"]
+AddToggle(combatContent, "Auto Combat", function(v) S.AutoCombat = v end)
+AddToggle(combatContent, "Auto Loot", function(v) S.AutoLoot = v end)
+AddToggle(combatContent, "Auto Return", function(v) S.AutoReturn = v end)
+AddToggle(combatContent, "Weapon Switch", function(v) S.WeaponSwitch = v end)
+AddToggle(combatContent, "Ability Rotation", function(v) S.AbilityRotation = v end)
+AddToggle(combatContent, "Auto Dodge", function(v) S.AutoDodge = v end)
+AddSlider(combatContent, "Attack Range", 5, 100, 20, function(v) S.AttackRange = v end)
+AddSlider(combatContent, "Loot Range", 5, 80, 15, function(v) S.LootRange = v end)
+AddSlider(combatContent, "Heal Threshold %", 1, 99, 40, function(v) S.HealThreshold = v end)
+
+-- Forge Tab
+local forgeContent = contentFrames["Forge"]
+AddToggle(forgeContent, "Auto Perfect Forge", function(v)
+    S.AutoForge = v
+    if v then StartForgeWatcher() end
+end)
+AddButton(forgeContent, "Collect Ores", function()
+    if not RefreshChar() then return end
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") or obj:IsA("BasePart") then
+            local n = obj.Name:lower()
+            if n:find("ore") or n:find("mineral") or n:find("material") then
+                local part = obj:IsA("BasePart") and obj or (obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildOfClass("BasePart")))
+                if part then Root.CFrame = part.CFrame + Vector3.new(0, 3, 0); FireRemote("collect", obj) end
+            end
+        end
+    end
+end)
+
+-- Dungeon Tab
+local dungeonContent = contentFrames["Dungeon"]
+AddToggle(dungeonContent, "Auto Destroy Eggs", function(v) S.AutoEgg = v end)
+AddSlider(dungeonContent, "Egg Range", 20, 500, 200, function(v) S.EggRange = v end)
+AddButton(dungeonContent, "Destroy All Eggs Now", function()
+    if not RefreshChar() then return end
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if IsEgg(obj) then DestroyEgg(obj) end
+    end
+end)
+AddButton(dungeonContent, "Teleport to Boss", function()
+    if not RefreshChar() then return end
+    local boss = GetNearestEnemy(math.huge, true)
+    if boss then
+        local r = boss:FindFirstChild("HumanoidRootPart")
+        if r then Root.CFrame = r.CFrame + Vector3.new(0, 3, 6) end
+    end
+end)
+AddButton(dungeonContent, "Teleport to Portal", function()
+    if not RefreshChar() then return end
+    local portal = Workspace:FindFirstChild("DungeonPortal", true) or Workspace:FindFirstChild("ReturnPortal", true) or Workspace:FindFirstChild("Entrance", true)
+    if portal then
+        local p = portal:IsA("BasePart") and portal or portal.PrimaryPart
+        if p then Root.CFrame = p.CFrame + Vector3.new(0, 3, 0) end
+    end
+end)
+
+-- ESP Tab
+local espContent = contentFrames["ESP"]
+AddToggle(espContent, "ESP Enemies", function(v) S.ESPEnemies = v end)
+AddToggle(espContent, "ESP Players", function(v) S.ESPPlayers = v end)
+AddToggle(espContent, "ESP Loot", function(v) S.ESPLoot = v end)
+AddToggle(espContent, "ESP Chests/Eggs", function(v) S.ESPChests = v end)
+AddSlider(espContent, "ESP Transparency", 0, 1, 0.4, function(v) S.ESPTransparency = v end)
+AddToggle(espContent, "Show Names", function(v) S.ShowNames = v end)
+AddToggle(espContent, "Show Distance", function(v) S.ShowDistance = v end)
 
 -- ===== SERVICES =====
 local Players = game:GetService("Players")
@@ -152,7 +459,7 @@ local function MakeESP(target, color, label)
     local box = Instance.new("SelectionBox")
     box.Color3 = color
     box.LineThickness = 0.06
-    box.SurfaceTransparency = S.ESPTransparency
+    box.SurfaceTransparency = S.ESPTransparency or 0.4
     box.SurfaceColor3 = color
     box.Adornee = target
     box.Parent = Workspace.CurrentCamera
@@ -184,7 +491,7 @@ local function UpdateESP()
             local r = e:FindFirstChild("HumanoidRootPart")
             local d = r and Root and math.floor(Dist(Root, r)) or 0
             local lbl = (S.ShowNames and e.Name or "") .. (S.ShowDistance and (" | " .. d .. "m") or "")
-            MakeESP(e, S.ESPColor, lbl)
+            MakeESP(e, Color3.fromRGB(255, 50, 50), lbl)
         end
     end
     if S.ESPPlayers then
@@ -193,17 +500,57 @@ local function UpdateESP()
                 local r = p.Character:FindFirstChild("HumanoidRootPart")
                 local d = r and Root and math.floor(Dist(Root, r)) or 0
                 local lbl = (S.ShowNames and p.Name or "") .. (S.ShowDistance and (" | " .. d .. "m") or "")
-                MakeESP(p.Character, S.PlayerESPColor, lbl)
+                MakeESP(p.Character, Color3.fromRGB(50, 150, 255), lbl)
             end
         end
     end
     if S.ESPLoot or S.ESPChests then
         for _, obj in ipairs(Workspace:GetDescendants()) do
             if IsEgg(obj) then
-                MakeESP(obj, S.ChestESPColor, obj.Name)
+                MakeESP(obj, Color3.fromRGB(0, 255, 100), obj.Name)
             end
         end
     end
+end
+
+-- ===== AUTO PERFECT FORGE =====
+local ForgeWatcher
+local function StartForgeWatcher()
+    if ForgeWatcher then ForgeWatcher:Disconnect() end
+    ForgeWatcher = RunService.Heartbeat:Connect(function()
+        if not S.AutoForge then return end
+        local function ScanGui(gui)
+            if not gui then return end
+            for _, v in ipairs(gui:GetDescendants()) do
+                if v:IsA("Frame") or v:IsA("ImageLabel") then
+                    local name = v.Name:lower()
+                    if name:find("indicator") or name:find("needle") or name:find("cursor") or name:find("marker") then
+                        local parent = v.Parent
+                        if parent and parent:IsA("GuiObject") then
+                            local relX = (v.AbsolutePosition.X - parent.AbsolutePosition.X) / math.max(parent.AbsoluteSize.X, 1)
+                            if relX >= 0.60 and relX <= 0.85 then
+                                FireRemote("forge"); FireRemote("craft"); FireRemote("confirm")
+                                pcall(function()
+                                    VIM:SendMouseButtonEvent(v.AbsolutePosition.X + v.AbsoluteSize.X/2, v.AbsolutePosition.Y + v.AbsoluteSize.Y/2, 0, true, game, 1)
+                                    task.wait(0.05)
+                                    VIM:SendMouseButtonEvent(v.AbsolutePosition.X + v.AbsoluteSize.X/2, v.AbsolutePosition.Y + v.AbsoluteSize.Y/2, 0, false, game, 1)
+                                end)
+                                for _, key in ipairs({Enum.KeyCode.E, Enum.KeyCode.F, Enum.KeyCode.Return, Enum.KeyCode.Space}) do
+                                    pcall(function()
+                                        VIM:SendKeyEvent(true, key, false, game)
+                                        task.wait(0.03)
+                                        VIM:SendKeyEvent(false, key, false, game)
+                                    end)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        ScanGui(LP.PlayerGui)
+        ScanGui(game:GetService("CoreGui"))
+    end)
 end
 
 -- ===== MAIN LOOP =====
@@ -299,8 +646,8 @@ RunService.Heartbeat:Connect(function(dt)
     timers.ability = timers.ability + dt
     if S.AbilityRotation and timers.ability >= 0.7 then
         timers.ability = 0
-        local key = S.AbilityList[S.AbilityIndex]
-        S.AbilityIndex = (S.AbilityIndex % #S.AbilityList) + 1
+        local key = S.AbilityList and S.AbilityList[S.AbilityIndex] or "Q"
+        S.AbilityIndex = ((S.AbilityIndex or 1) % 7) + 1
         pcall(function()
             VIM:SendKeyEvent(true, Enum.KeyCode[key], false, game)
             task.wait(0.04)
@@ -324,170 +671,11 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
--- ===== AUTO PERFECT FORGE =====
-local ForgeWatcher
-local function StartForgeWatcher()
-    if ForgeWatcher then ForgeWatcher:Disconnect() end
-    ForgeWatcher = RunService.Heartbeat:Connect(function()
-        if not S.AutoForge then return end
-        local function ScanGui(gui)
-            if not gui then return end
-            for _, v in ipairs(gui:GetDescendants()) do
-                if v:IsA("Frame") or v:IsA("ImageLabel") then
-                    local name = v.Name:lower()
-                    if name:find("indicator") or name:find("needle") or name:find("cursor") or name:find("marker") then
-                        local parent = v.Parent
-                        if parent and parent:IsA("GuiObject") then
-                            local relX = (v.AbsolutePosition.X - parent.AbsolutePosition.X) / math.max(parent.AbsoluteSize.X, 1)
-                            if relX >= 0.60 and relX <= 0.85 then
-                                FireRemote("forge"); FireRemote("craft"); FireRemote("confirm")
-                                pcall(function()
-                                    VIM:SendMouseButtonEvent(v.AbsolutePosition.X + v.AbsoluteSize.X/2, v.AbsolutePosition.Y + v.AbsoluteSize.Y/2, 0, true, game, 1)
-                                    task.wait(0.05)
-                                    VIM:SendMouseButtonEvent(v.AbsolutePosition.X + v.AbsoluteSize.X/2, v.AbsolutePosition.Y + v.AbsoluteSize.Y/2, 0, false, game, 1)
-                                end)
-                                for _, key in ipairs({Enum.KeyCode.E, Enum.KeyCode.F, Enum.KeyCode.Return, Enum.KeyCode.Space}) do
-                                    pcall(function()
-                                        VIM:SendKeyEvent(true, key, false, game)
-                                        task.wait(0.03)
-                                        VIM:SendKeyEvent(false, key, false, game)
-                                    end)
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        ScanGui(LP.PlayerGui)
-        ScanGui(game:GetService("CoreGui"))
-    end)
-end
-
--- ===== HYDRO UI TABS =====
-
--- Kill Aura
-local AuraTab = Window:Tab("Kill Aura")
-local AuraSection = AuraTab:Section("Long Range AFK")
-AuraSection:Toggle("Long Range Kill Aura", function(v) S.LongAura = v end)
-AuraSection:Slider("Aura Range", 50, 500, 200, function(v) S.AuraRange = v end)
-AuraSection:Slider("Aura Speed (ms)", 10, 200, 50, function(v) S.AuraInterval = v / 1000 end)
-AuraSection:Toggle("Boss Priority", function(v) S.BossPriority = v end)
-
--- Combat
-local CombatTab = Window:Tab("Combat")
-local CombatSection = CombatTab:Section("Auto Combat")
-CombatSection:Toggle("Auto Combat", function(v) S.AutoCombat = v end)
-CombatSection:Toggle("Auto Loot", function(v) S.AutoLoot = v end)
-CombatSection:Toggle("Auto Return", function(v) S.AutoReturn = v end)
-CombatSection:Toggle("Weapon Switch", function(v) S.WeaponSwitch = v end)
-CombatSection:Toggle("Ability Rotation", function(v) S.AbilityRotation = v end)
-CombatSection:Toggle("Auto Dodge", function(v) S.AutoDodge = v end)
-CombatSection:Slider("Attack Range", 5, 100, 20, function(v) S.AttackRange = v end)
-CombatSection:Slider("Loot Range", 5, 80, 15, function(v) S.LootRange = v end)
-CombatSection:Slider("Heal Threshold %", 1, 99, 40, function(v) S.HealThreshold = v end)
-
--- Forge
-local ForgeTab = Window:Tab("Forge")
-local ForgeSection = ForgeTab:Section("Auto Forge")
-ForgeSection:Toggle("Auto Perfect Forge", function(v)
-    S.AutoForge = v
-    if v then StartForgeWatcher() end
-end)
-ForgeSection:Button("Collect Ores", function()
-    if not RefreshChar() then return end
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") or obj:IsA("BasePart") then
-            local n = obj.Name:lower()
-            if n:find("ore") or n:find("mineral") or n:find("material") then
-                local part = obj:IsA("BasePart") and obj or (obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildOfClass("BasePart")))
-                if part then Root.CFrame = part.CFrame + Vector3.new(0, 3, 0); FireRemote("collect", obj) end
-            end
-        end
-    end
-end)
-
--- Dungeon
-local DungeonTab = Window:Tab("Dungeon")
-local DungeonSection = DungeonTab:Section("Chest Egg Destroyer")
-DungeonSection:Toggle("Auto Destroy Eggs", function(v) S.AutoEgg = v end)
-DungeonSection:Slider("Egg Range", 20, 500, 200, function(v) S.EggRange = v end)
-DungeonSection:Button("Destroy All Eggs Now", function()
-    if not RefreshChar() then return end
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if IsEgg(obj) then DestroyEgg(obj) end
-    end
-end)
-DungeonSection:Button("Teleport to Boss", function()
-    if not RefreshChar() then return end
-    local boss = GetNearestEnemy(math.huge, true)
-    if boss then
-        local r = boss:FindFirstChild("HumanoidRootPart")
-        if r then Root.CFrame = r.CFrame + Vector3.new(0, 3, 6) end
-    end
-end)
-DungeonSection:Button("Teleport to Portal", function()
-    if not RefreshChar() then return end
-    local portal = Workspace:FindFirstChild("DungeonPortal", true) or Workspace:FindFirstChild("ReturnPortal", true) or Workspace:FindFirstChild("Entrance", true)
-    if portal then
-        local p = portal:IsA("BasePart") and portal or portal.PrimaryPart
-        if p then Root.CFrame = p.CFrame + Vector3.new(0, 3, 0) end
-    end
-end)
-
--- Movement
-local MoveTab = Window:Tab("Movement")
-local MoveSection = MoveTab:Section("Stats")
-MoveSection:Slider("Walk Speed", 16, 500, 16, function(v)
-    S.WalkSpeed = v
-    if Hum then Hum.WalkSpeed = v end
-end)
-MoveSection:Slider("Jump Power", 50, 500, 50, function(v)
-    S.JumpPower = v
-    if Hum then Hum.JumpPower = v end
-end)
-MoveSection:Slider("Gravity", 0, 400, 196, function(v)
-    S.Gravity = v
-    Workspace.Gravity = v
-end)
-MoveSection:Button("Reset Movement", function()
-    S.WalkSpeed = 16; S.JumpPower = 50; S.Gravity = 196.2
-    if Hum then Hum.WalkSpeed = 16; Hum.JumpPower = 50 end
-    Workspace.Gravity = 196.2
-end)
-
--- Utility
-local UtilTab = Window:Tab("Utility")
-local UtilSection = UtilTab:Section("Tools")
-UtilSection:Toggle("Anti-Idle", function(v) S.AntiIdle = v end)
-UtilSection:Button("Kill Character", function()
-    if Hum then Hum.Health = 0 end
-    FireRemote("kill")
-end)
-UtilSection:Button("Reset GUI", function()
-    for k, v in pairs(S) do
-        if type(v) == "boolean" then S[k] = false end
-    end
-    S.WalkSpeed = 16; S.JumpPower = 50; S.Gravity = 196.2
-    S.AttackRange = 20; S.LootRange = 15; S.HealThreshold = 40
-    S.AuraRange = 200; S.EggRange = 200
-    if Hum then Hum.WalkSpeed = 16; Hum.JumpPower = 50 end
-    Workspace.Gravity = 196.2
-    ClearESP()
-end)
-UtilSection:Button("Rejoin Server", function()
-    game:GetService("TeleportService"):Teleport(game.PlaceId, LP)
-end)
-
--- ESP
-local ESPTab = Window:Tab("ESP")
-local ESPSection = ESPTab:Section("ESP Settings")
-ESPSection:Toggle("ESP Enemies", function(v) S.ESPEnemies = v end)
-ESPSection:Toggle("ESP Players", function(v) S.ESPPlayers = v end)
-ESPSection:Toggle("ESP Loot", function(v) S.ESPLoot = v end)
-ESPSection:Toggle("ESP Chests/Eggs", function(v) S.ESPChests = v end)
-ESPSection:Slider("ESP Transparency", 0, 1, 0.4, function(v) S.ESPTransparency = v end)
-ESPSection:Toggle("Show Names", function(v) S.ShowNames = v end)
-ESPSection:Toggle("Show Distance", function(v) S.ShowDistance = v end)
+-- Ability list
+S.AbilityList = {"Q","E","R","F","Z","X","C"}
+S.AbilityIndex = 1
+S.ShowNames = true
+S.ShowDistance = true
+S.ESPTransparency = 0.4
 
 print("Iron Soul Dungeon loaded. GUI open.")
